@@ -4,7 +4,6 @@ import { ChatTab } from './components/ChatTab';
 import { VisionTab } from './components/VisionTab';
 import { VoiceTab } from './components/VoiceTab';
 import { ToolsTab } from './components/ToolsTab';
-import { embed } from "./pipeline/embedder";
 import { indexText, runSearch } from "./pipeline/main";
 
 type Tab = 'chat' | 'vision' | 'voice' | 'tools';
