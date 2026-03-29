@@ -1,70 +1,61 @@
-function chunkText(text) {
-    if (!text || typeof text !== 'string') return [];
-    
-    const maxTokens = 512;
-    const overlapTokens = 50;
+export function chunkText(text: string): string[] {
+  if (!text || typeof text !== "string") return [];
 
-    // Split text into sentences using lookbehind for punctuation followed by whitespace.
-    // This preserves the punctuation at the end of each sentence.
-    const sentences = text.trim().split(/(?<=[.?!])\s+/);
-    
-    const chunks = [];
-    let currentChunk = [];
-    let currentChunkTokenCount = 0;
-    
-    for (let i = 0; i < sentences.length; i++) {
-        const sentence = sentences[i].trim();
-        if (!sentence) continue;
-        
-        const words = sentence.split(/\s+/);
-        const tokenCount = words.length;
-        
-        // Hard split if a single sentence is larger than the max chunk size
-        if (tokenCount > maxTokens) {
-            if (currentChunk.length > 0) {
-                chunks.push(currentChunk.join(' '));
-                currentChunk = [];
-                currentChunkTokenCount = 0;
-            }
-            
-            for (let j = 0; j < words.length; j += (maxTokens - overlapTokens)) {
-                const subWords = words.slice(j, j + maxTokens);
-                chunks.push(subWords.join(' '));
-            }
-            continue;
-        }
-        
-        // Flush the current chunk if adding the sentence would exceed the limit
-        if (currentChunkTokenCount + tokenCount > maxTokens && currentChunk.length > 0) {
-            chunks.push(currentChunk.join(' '));
-            
-            // Build the next chunk starting with an overlap of ~50 tokens from previous sentences
-            let overlapLexemes = [];
-            let overlapCount = 0;
-            
-            for (let k = currentChunk.length - 1; k >= 0; k--) {
-                const s = currentChunk[k];
-                const sWordsCount = s.split(/\s+/).length;
-                overlapLexemes.unshift(s);
-                overlapCount += sWordsCount;
-                if (overlapCount >= overlapTokens) {
-                    break;
-                }
-            }
-            
-            currentChunk = [...overlapLexemes, sentence];
-            currentChunkTokenCount = overlapCount + tokenCount;
-        } else {
-            currentChunk.push(sentence);
-            currentChunkTokenCount += tokenCount;
-        }
+  const maxTokens = 512;
+  const overlapTokens = 50;
+
+  // ⚡ faster split (avoid lookbehind regex)
+  const sentences = text.trim().split(/[.?!]\s+/);
+
+  const chunks: string[] = [];
+  let currentChunk: string[] = [];
+  let currentTokenCount = 0;
+
+  for (let i = 0; i < sentences.length; i++) {
+    const sentence = sentences[i].trim();
+    if (!sentence) continue;
+
+    const words = sentence.split(" ");
+    const tokenCount = words.length;
+
+    // ── Hard split large sentence ──
+    if (tokenCount > maxTokens) {
+      if (currentChunk.length) {
+        chunks.push(currentChunk.join(" "));
+        currentChunk = [];
+        currentTokenCount = 0;
+      }
+
+      for (let j = 0; j < words.length; j += (maxTokens - overlapTokens)) {
+        chunks.push(words.slice(j, j + maxTokens).join(" "));
+      }
+      continue;
     }
-    
-    if (currentChunk.length > 0) {
-        chunks.push(currentChunk.join(' '));
+
+    // ── Flush if exceeds limit ──
+    if (currentTokenCount + tokenCount > maxTokens && currentChunk.length) {
+      chunks.push(currentChunk.join(" "));
+
+      // ⚡ overlap (optimized)
+      let overlap: string[] = [];
+      let count = 0;
+
+      for (let k = currentChunk.length - 1; k >= 0 && count < overlapTokens; k--) {
+        overlap.unshift(currentChunk[k]);
+        count += currentChunk[k].split(" ").length;
+      }
+
+      currentChunk = [...overlap];
+      currentTokenCount = count;
     }
-    
-    return chunks;
+
+    currentChunk.push(sentence);
+    currentTokenCount += tokenCount;
+  }
+
+  if (currentChunk.length) {
+    chunks.push(currentChunk.join(" "));
+  }
+
+  return chunks;
 }
-
-module.exports = { chunkText };
