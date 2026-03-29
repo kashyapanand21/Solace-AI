@@ -5,6 +5,7 @@ import { VisionTab } from './components/VisionTab';
 import { VoiceTab } from './components/VoiceTab';
 import { ToolsTab } from './components/ToolsTab';
 import { embed } from "./pipeline/embedder";
+import { indexText, runSearch } from "./pipeline/main";
 
 type Tab = 'chat' | 'vision' | 'voice' | 'tools';
 
@@ -12,12 +13,30 @@ export function App() {
   const [sdkReady, setSdkReady] = useState(false);
   const [sdkError, setSdkError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('chat');
+  const [query, setQuery] = useState("");
+const [results, setResults] = useState<any[]>([]);
 
   useEffect(() => {
-    initSDK()
-      .then(() => setSdkReady(true))
-      .catch((err) => setSdkError(err instanceof Error ? err.message : String(err)));
-  }, []);
+  initSDK()
+    .then(async () => {
+      setSdkReady(true);
+
+      // 🔥 INDEX DATA (MANDATORY)
+      await indexText(
+        "Machine learning is amazing. Neural networks learn patterns. JavaScript runs in browsers."
+      );
+    })
+    .catch((err) =>
+      setSdkError(err instanceof Error ? err.message : String(err))
+    );
+}, []);
+
+  const handleSearch = async () => {
+  if (!query.trim()) return;
+
+  const res = await runSearch(query);
+  setResults(res);
+};
 
   if (sdkError) {
     return (
@@ -43,6 +62,24 @@ export function App() {
   return (
     <div className="app">
       <header className="app-header">
+        <div style={{ padding: "20px" }}>
+  <input
+    value={query}
+    onChange={(e) => setQuery(e.target.value)}
+    placeholder="Search..."
+    style={{ marginRight: "10px" }}
+  />
+
+  <button onClick={handleSearch}>Search</button>
+
+  <div style={{ marginTop: "20px" }}>
+    {results.map((r, i) => (
+      <div key={i}>
+        {r.text} — score: {r.score.toFixed(3)}
+      </div>
+    ))}
+  </div>
+</div>
         <h1>RunAnywhere AI</h1>
         {accel && <span className="badge">{accel === 'webgpu' ? 'WebGPU' : 'CPU'}</span>}
       </header>
