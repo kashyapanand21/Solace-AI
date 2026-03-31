@@ -9,11 +9,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         body { 
-            background-color: #130802; 
+            background-color: #130802; /* Exact background from reference */
             font-family: 'Poppins', sans-serif;
             color: #e5e7eb;
             margin: 0;
-            overflow-x: hidden;
         }
         .glass-panel {
             background: rgba(255, 255, 255, 0.03);
@@ -24,11 +23,15 @@
         .orange-glow {
             text-shadow: 0 0 15px rgba(255, 69, 0, 0.5);
         }
+        /* The Atom Loader from the source */
+        #loader-wrapper {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #130802; z-index: 9999; display: flex;
+            flex-direction: column; justify-content: center; align-items: center;
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
-
-    <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
