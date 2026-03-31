@@ -5,6 +5,9 @@ import { VisionTab } from './components/VisionTab';
 import { VoiceTab } from './components/VoiceTab';
 import { ToolsTab } from './components/ToolsTab';
 import { indexText, runSearch } from "./pipeline/main";
+import { loadCategories, classifyText } from "./pipeline/classifier";
+// @ts-ignore — FileCard.jsx has no type declarations
+import FileCard from "./components/FileCard";
 
 type Tab = 'chat' | 'vision' | 'voice' | 'tools';
 
@@ -13,17 +16,30 @@ export function App() {
   const [sdkError, setSdkError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('chat');
   const [query, setQuery] = useState("");
-const [results, setResults] = useState<any[]>([]);
+const [results, setResults] = useState<
+    { text: string; score: number; label: string; confidence: number }[]
+  >([]);
 
   useEffect(() => {
   initSDK()
     .then(async () => {
       setSdkReady(true);
+      // PHASE 1 TEST — remove after testing
+      await loadCategories();
+      const testResult = await classifyText("invoice payment budget Q3 expenses");
+      console.log("[Classifier Test] label:", testResult.label, "confidence:", testResult.confidence.toFixed(4));
 
       // 🔥 INDEX DATA (MANDATORY)
-      await indexText(
-        "Machine learning is amazing. Neural networks learn patterns. JavaScript runs in browsers."
-      );
+      await indexText(`
+        Invoice #1042 total payment due budget expense tax revenue quarterly financial report.
+        Resume curriculum vitae work experience software engineer skills candidate job application.
+        Lecture notes study material university exam assignment homework course syllabus semester.
+        Contract agreement legal terms conditions clause jurisdiction liability party shall hereby.
+        Medical health doctor prescription diagnosis patient hospital treatment clinical symptoms.
+        Meeting agenda project proposal business plan office team deliverable deadline client manager.
+        Personal diary family travel vacation hobby memory photo journal weekend holiday.
+        Machine learning neural networks JavaScript programming tutorial course study notes.
+      `);
     })
     .catch((err) =>
       setSdkError(err instanceof Error ? err.message : String(err))
@@ -31,11 +47,17 @@ const [results, setResults] = useState<any[]>([]);
 }, []);
 
   const handleSearch = async () => {
-  if (!query.trim()) return;
+    if (!query.trim()) return;
 
-  const res = await runSearch(query);
-  setResults(res);
-};
+    const raw = await runSearch(query);
+    const enriched = await Promise.all(
+      raw.map(async (r: { text: string; score: number }) => {
+        const { label, confidence } = await classifyText(r.text);
+        return { ...r, label, confidence };
+      })
+    );
+    setResults(enriched);
+  };
 
   if (sdkError) {
     return (
@@ -71,11 +93,18 @@ const [results, setResults] = useState<any[]>([]);
 
   <button onClick={handleSearch}>Search</button>
 
-  <div style={{ marginTop: "20px" }}>
+  <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
     {results.map((r, i) => (
-      <div key={i}>
-        {r.text} — score: {r.score.toFixed(3)}
-      </div>
+      <FileCard
+        key={i}
+        file={{
+          name: r.text.slice(0, 40),
+          summary: r.text,
+          date: "",
+          tags: [r.label],
+          score: r.score,
+        }}
+      />
     ))}
   </div>
 </div>
