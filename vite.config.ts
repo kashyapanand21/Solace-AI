@@ -61,6 +61,7 @@ function copyWasmPlugin(): Plugin {
 }
 
 export default defineConfig({
+  base: './',
   plugins: [tailwindcss(), react(), copyWasmPlugin()],
   server: {
     headers: {
